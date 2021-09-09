@@ -1,11 +1,9 @@
 import csv
+
 import requests
+
 from page import Page
 from settings import TOKEN, SITE
-
-
-# HIERARCHY_CQL = f'space = {SPACE} AND type = page'
-# HIERARCHY_URL = SITE + f'/rest/api/content/search?cql={cql}&start=0&limit=50&expand=ancestors'
 
 
 def get_pages(cql: str, url: str):
@@ -75,8 +73,7 @@ def sort_pages(page_objs):
 
 def write_pages_to_csv(pages, file_name):
     page_levels = max(page.level for page in pages)
-    with open(f'./{file_name}', mode='w', newline='') as levels:
-
+    with open(f'./out/{file_name}', mode='w', newline='') as levels:
         fieldnames = [f'Level {level}' for level in range(page_levels + 1)]
         fieldnames.append('URL')
         fieldnames.append('body_size')
@@ -92,6 +89,9 @@ def write_pages_to_csv(pages, file_name):
 
 def generate_report(params: dict):
     pages = get_pages(params['cql'], params['url'])
+    if len(pages) == 0:
+        raise Exception("No pages found. Please check your query.")
+
     page_objs = []
     for page in pages:
         pg = Page.from_dict(page)

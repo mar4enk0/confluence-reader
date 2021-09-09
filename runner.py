@@ -9,9 +9,9 @@ tech_practice = {
 
 
 db_practice = {
-    'cql': 'space = "ACP" AND type = page AND label="db-practice" AND label!="project-page"',
+    'cql': 'space = "ACP" AND type = page AND label="tech-db" AND label!="project-page"',
     'url': '/rest/api/content/search?cql={0}&start=0&limit=50&expand=ancestors,body.storage',
-    'file_name': 'ACP_tech_practice_quality.csv',
+    'file_name': 'ACP_db_practice_quality.csv',
     'sort': False
 }
 
@@ -30,4 +30,4 @@ customer_projects_hierarchy = {
 }
 
 
-generate_report(customer_projects_hierarchy)
+generate_report(db_practice)
