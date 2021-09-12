@@ -1,5 +1,5 @@
 import settings as config
-from wiki_parser import update_stats_page
+from wiki_parser import update_stats_page, generate_cvs
 
-# generate_cvs(config.db_practice)
+generate_cvs(config.db_practice)
 update_stats_page(config.db_practice)

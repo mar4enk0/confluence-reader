@@ -20,6 +20,8 @@ def get_pages(cql: str, url: str):
 
     # Get that passes in the space and expands the ancestors
     r = requests.get(full_url, headers=HEADERS, timeout=10)
+    if r.status_code != 200:
+        raise Exception(r.content)
 
     page_list = r.json()['results']
     for page in page_list:
