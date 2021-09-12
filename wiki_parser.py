@@ -1,22 +1,25 @@
 import csv
+import json
 
 import requests
 
 from page import Page
-from settings import TOKEN, SITE
+from settings import WIKI_URL, HEADERS, REST_URL
+
+
+def get_page_version(page_id: str):
+    full_url = REST_URL + '/' + page_id
+    r = requests.get(full_url, headers=HEADERS, timeout=10)
+    version = r.json()['version']['number']
+    return version
 
 
 def get_pages(cql: str, url: str):
-    headers = {
-        "Authorization": "Basic " + TOKEN,
-        "Content-Type": "application/json"
-    }
-
-    url = SITE + url.format(cql)
+    full_url = url.format(cql)
     pages = []
 
     # Get that passes in the space and expands the ancestors
-    r = requests.get(url, headers=headers, timeout=10)
+    r = requests.get(full_url, headers=HEADERS, timeout=10)
 
     page_list = r.json()['results']
     for page in page_list:
@@ -27,8 +30,8 @@ def get_pages(cql: str, url: str):
     while is_next_page:
         try:
             next_page = r.json()['_links']['next']
-            url = SITE + next_page
-            r = requests.get(url, headers=headers)
+            full_url = WIKI_URL + next_page
+            r = requests.get(full_url, headers=HEADERS)
 
             page_list = r.json()['results']
             for page in page_list:
@@ -82,22 +85,79 @@ def write_pages_to_csv(pages, file_name):
         writer.writeheader()
 
         for page in pages:
-            link = SITE + page.url
+            link = WIKI_URL + page.url
             row_dict = {f'Level {page.level}': page.title, 'URL': link, 'body_size': page.body_size}
             writer.writerow(row_dict)
 
 
-def generate_report(params: dict):
-    pages = get_pages(params['cql'], params['url'])
-    if len(pages) == 0:
-        raise Exception("No pages found. Please check your query.")
-
+def transform_to_page_objects(pages, sort: bool = False):
     page_objs = []
     for page in pages:
         pg = Page.from_dict(page)
         page_objs.append(pg)
-    if params['sort']:
-        sorted_pages = sort_pages(page_objs)
-        write_pages_to_csv(sorted_pages, params['file_name'])
+    if sort:
+        return sort_pages(page_objs)
     else:
-        write_pages_to_csv(page_objs, params['file_name'])
+        return page_objs
+
+
+def generate_cvs(params: dict):
+    pages = get_pages(params['cql'], params['url'])
+    if len(pages) == 0:
+        raise Exception("No pages found. Please check your query.")
+
+    page_objs = transform_to_page_objects(pages, params['sort'])
+    write_pages_to_csv(page_objs, params['file_name'])
+
+
+def update_page(page_id: str, data: str, version: int):
+    full_url = REST_URL + '/' + page_id
+
+    d = {"id": page_id,
+         "type": "page",
+         "title": "Quality - DB & Storage Practice",
+         "space": {"key": "ACP"},
+         "body": {"storage":
+                      {"value": data,
+                       "representation": "storage"}},
+         "version": {"number": version}
+         }
+
+    r = requests.put(full_url, data=json.dumps(d), headers=HEADERS, timeout=10)
+    if r.status_code != 200:
+        raise Exception(r.content)
+
+
+def update_stats_page(params):
+    version = get_page_version(params['quality_page_id'])
+    pages = get_pages(params['cql'], params['url'])
+    page_objs = transform_to_page_objects(pages)
+
+    table_template = '''
+    <table data-layout=\"full-width\" ac:local-id=\"ca786083-6227-4a4c-ae32-7d962fe83583\">
+        <colgroup>
+            <col style=\"width: 400px;\"/>
+            <col style=\"width: 400px;\"/>
+            <col style=\"width: 100px;\"/>
+        </colgroup>
+        <thead>
+            <tr>
+                <th><strong>Title</strong></th>
+                <th><strong>Link</strong></th>
+                <th><strong>Size</strong></th>
+            </tr>
+        </thead>
+        <tbody>{0}</tbody>
+    </table>'''
+
+    row_template = '<tr><td><p>{0}</p></td><td><p>{1}</p></td><td><p>{2}</p></td></tr>\n'
+    rows = []
+
+    for page in page_objs:
+        row = row_template.format(page.title, WIKI_URL + page.url, page.body_size)
+        rows.append(row)
+
+    table = ''.join(rows)
+    table = table_template.format(table)
+    table = table.replace('\n', '').replace('\t', '').replace('&', '&amp;')
+    update_page(params['quality_page_id'], table, version + 1)
