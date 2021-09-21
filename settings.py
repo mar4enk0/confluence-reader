@@ -5,7 +5,8 @@ REST_URL = WIKI_URL + '/rest/api/content'
 
 HEADERS = {
     "Authorization": "Basic " + TOKEN,
-    "Content-Type": "application/json"
+    "Content-Type": "application/json",
+
 }
 
 tech_practice = {
@@ -46,6 +47,14 @@ ml_practice = {
             AND label NOT IN ("project-page", "case-study", "tech-data-science-root-practice")',
     'url': REST_URL + '/search?cql={0}&start=0&limit=50&expand=ancestors,body.storage',
     'file_name': 'ACP_ml_practice_quality.csv',
+    'sort': False
+}
+
+qa_practice = {
+    'cql': 'space = "ACP" AND type = page AND label = "tech-qa" \
+            AND label NOT IN ("project-page", "case-study", "tech-qa-root-practice")',
+    'url': REST_URL + '/search?cql={0}&start=0&limit=50&expand=ancestors,body.storage',
+    'file_name': 'ACP_qa_practice_quality.csv',
     'sort': False
 }
 

@@ -3,6 +3,13 @@ import xml.etree.ElementTree as ET
 
 
 class Page:
+    quality_dic = (
+        (0, 500, 'Very Poor'),
+        (501, 2_500, 'Poor'),
+        (2_501, 4_000, 'Fair'),
+        (4_001, 9_000, 'Good'),
+        (9_001, 100_000, 'Excellent')
+    )
 
     def __init__(self, title: str, url: str, page_id: str, level: int, ancestors: list, body: str):
         self.url = url
@@ -10,7 +17,9 @@ class Page:
         self.title = title
         self.level = level
         self.ancestors = ancestors
+        self._quality = 'Undefined'
         self.body = body
+
 
 
     @classmethod
@@ -29,6 +38,19 @@ class Page:
 
 
     @property
+    def quality(self):
+        return self._quality
+
+
+    @quality.setter
+    def quality(self, body_size: int):
+        for low, high, q in Page.quality_dic:
+            if low <= body_size <= high:
+                self._quality = q
+                return
+
+
+    @property
     def body(self):
         return self._body
 
@@ -38,6 +60,7 @@ class Page:
         if len(body) == 0:
             self._body = ''
             self.body_size = 0
+            self.quality = 0
             return
 
         template = '<confluence>{0}</confluence>'
@@ -50,27 +73,29 @@ class Page:
 
         body = template.format(body)
 
-        elems_to_delete = ['.//structured-macro[@macro-id="fa9c0aba-be69-4a80-9761-d13f04399718"]',
-                           './/structured-macro[@macro-id="611cb948-bc44-4d24-9650-cb6ed1dff555"]',
-                           './/structured-macro[@macro-id="2f286453-8317-40fb-83d6-7987d3acc62e"]',
-                           './/structured-macro[@macro-id="1a2b75f9-f881-4e55-af69-d7614115756d"]',
-                           './/structured-macro[@macro-id="a29ae77c-c1d8-43df-aced-4419910c9186"]',
-                           './/structured-macro[@macro-id="a944ee95-4595-4dd1-b42b-719a5ebcf06d"]',
-                           './/structured-macro[@macro-id="4219a0e5-475e-406b-aba6-7c463536313a"]',
-                           './/structured-macro[@macro-id="3555d197-4165-40ff-9889-7e2edb8cfda7"]/rich-text-body/table']
+        elems_to_delete = [
+            './/structured-macro[@name="note"]',
+            './/structured-macro[@name="info"]'
+        ]
 
-        root = ET.fromstring(body)
+        root: ET.Element = ET.fromstring(body)
         for e in elems_to_delete:
-            elem = root.find(e)
-            elem_parent = root.find(e + '/..')
-            if elem and elem_parent:
-                elem_parent.remove(elem)
+            elems_found = root.findall(e)
+            for elem in elems_found:
+                elem_parent = root.find(e + '/..')
+                if elem and elem_parent:
+                    elem_parent.remove(elem)
+
+        el: ET.Element = root.findall('.//user')
+        self.users = []
+        if el is not None and len(el) > 0:
+            self.users = list(set([e.attrib['userkey'] for e in el]))
 
         body = ET.tostring(root, encoding="unicode")
 
         self._body = body
-        self.body_size = 0 if (len(body) - 330) < 0 else len(body) - 330
-
+        self.body_size = 0 if (len(body) - 831) < 0 else len(body) - 831
+        self.quality = self.body_size
 
     def __str__(self):
         return self.title + ' - ' + self.url

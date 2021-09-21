@@ -140,26 +140,59 @@ def update_stats_page(params):
         <colgroup>
             <col style=\"width: 400px;\"/>
             <col style=\"width: 400px;\"/>
-            <col style=\"width: 100px;\"/>
+            <col style=\"width: 135px;\"/>
+            <col style=\"width: 65px;\"/>
         </colgroup>
         <thead>
             <tr>
                 <th><strong>Title</strong></th>
                 <th><strong>Link</strong></th>
-                <th><strong>Size</strong></th>
+                <th><strong>Owner(s)</strong></th>
+                <th><strong>Quality</strong></th>
             </tr>
         </thead>
         <tbody>{0}</tbody>
     </table>'''
 
-    row_template = '<tr><td><p>{0}</p></td><td><p>{1}</p></td><td><p>{2}</p></td></tr>\n'
+    quality_dic = {
+        'Very Poor': 'Grey',
+        'Poor': 'Red',
+        'Fair': 'Yellow',
+        'Good': 'Blue',
+        'Excellent': 'Green'
+    }
+
+    quality_template = '''
+    <ac:structured-macro ac:name=\"status\" ac:schema-version=\"1\" ac:macro-id=\"207a0de3-0db7-4eb3-845d-af7eeaf11074\">
+	    <ac:parameter ac:name=\"title\">{0}</ac:parameter>
+		<ac:parameter ac:name=\"colour\">{1}</ac:parameter>
+	</ac:structured-macro>'''
+
+    link_template = '''
+    <ac:link ac:card-appearance=\"inline\">
+	    <ri:page ri:content-title=\"{0}\"/>
+		<ac:link-body>{0}</ac:link-body>
+	</ac:link>
+    '''
+
+    user_template = '''
+<ac:link>
+<ri:user ri:userkey="{0}"/>
+</ac:link>
+    '''
+
+    row_template = '<tr><td><p>{0}</p></td><td><p>{1}</p></td><td><p>{2}</p></td><td><p>{3}</p></td></tr>\n'
     rows = []
 
     for page in page_objs:
-        row = row_template.format(page.title, WIKI_URL + page.url, page.body_size)
+        quality = quality_template.format(page.quality, quality_dic.get(page.quality, 'Grey'))
+        link = link_template.format(page.title)  #
+        owners = [user_template.format(u) for u in page.users]
+        row = row_template.format(page.title, link, "".join(owners), quality)  # WIKI_URL + page.url
         rows.append(row)
 
     table = ''.join(rows)
     table = table_template.format(table)
     table = table.replace('\n', '').replace('\t', '').replace('&', '&amp;')
+    print(table)
     update_page(params['quality_page_id'], table, version + 1)
