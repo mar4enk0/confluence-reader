@@ -1,12 +1,11 @@
-import re
 import xml.etree.ElementTree as ET
 
 
 class Page:
     quality_dic = (
         (0, 500, 'Very Poor'),
-        (501, 2_500, 'Poor'),
-        (2_501, 4_000, 'Fair'),
+        (501, 2_300, 'Poor'),
+        (2_301, 4_000, 'Fair'),
         (4_001, 9_000, 'Good'),
         (9_001, 100_000, 'Excellent')
     )
@@ -28,6 +27,7 @@ class Page:
             body = page_as_dict["body"]["storage"]["value"]
         else:
             body = ''
+
         return cls(title=page_as_dict['title'],
                    url=page_as_dict['_links']['webui'],
                    page_id=page_as_dict["id"],
@@ -66,10 +66,11 @@ class Page:
         template = '<confluence>{0}</confluence>'
         body = body.replace('ac:', '').replace('ri:', '').replace('&', '')
 
-        result = re.findall('&.*?;', body)
-        if result:
-            for e in frozenset(result):
-                body = body.replace(e, '')
+        # body = re.sub('&.*?;', '', body)
+        # result = re.findall('&.*?;', body)
+        # if result:
+        #     for e in frozenset(result):
+        #         body = body.replace(e, '')
 
         body = template.format(body)
 

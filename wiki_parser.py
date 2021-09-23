@@ -16,30 +16,23 @@ def get_page_version(page_id: str):
 
 def get_pages(cql: str, url: str):
     full_url = url.format(cql)
-    pages = []
 
     # Get that passes in the space and expands the ancestors
     r = requests.get(full_url, headers=HEADERS, timeout=10)
     if r.status_code != 200:
         raise Exception(r.content)
 
-    page_list = r.json()['results']
-    for page in page_list:
-        pages.append(page)
+    pages = r.json()['results'][:]
 
-    is_next_page = True
-
-    while is_next_page:
+    while True:
         try:
             next_page = r.json()['_links']['next']
             full_url = WIKI_URL + next_page
             r = requests.get(full_url, headers=HEADERS)
 
-            page_list = r.json()['results']
-            for page in page_list:
-                pages.append(page)
+            pages.extend(r.json()['results'][:])
         except KeyError:
-            is_next_page = False
+            break
 
     return pages
 
@@ -61,17 +54,20 @@ def sort_pages(page_objs):
             for page in children:
                 for pg in parents:
                     # Check whether the parent ID is in the child's ancestors and put the child after the parent if so.
-                    if pg.id in page.ancestors:
+                    if pg.page_id in page.ancestors:
                         try:
                             sorted_pages.insert(sorted_pages.index(pg) + 1, page)
                             continue
                         except ValueError:
                             print(pg.title + ' caused an error')
-                    else:
-                        continue
-    for page in page_objs:
-        if page not in sorted_pages:
-            sorted_pages.append(page)
+                    # else:
+                    #     continue
+
+    sorted_pages.extend([p for p in page_objs if p not in sorted_pages])
+
+    # for page in page_objs:
+    #     if page not in sorted_pages:
+    #         sorted_pages.append(page)
 
     return sorted_pages
 
@@ -112,12 +108,12 @@ def generate_cvs(params: dict):
     write_pages_to_csv(page_objs, params['file_name'])
 
 
-def update_page(page_id: str, data: str, version: int):
+def update_page(page_id: str, data: str, version: int, quality_title: str):
     full_url = REST_URL + '/' + page_id
 
     d = {"id": page_id,
          "type": "page",
-         "title": "Quality - DB & Storage Practice",
+         "title": quality_title,
          "space": {"key": "ACP"},
          "body": {"storage":
                       {"value": data,
@@ -172,14 +168,12 @@ def update_stats_page(params):
     <ac:link ac:card-appearance=\"inline\">
 	    <ri:page ri:content-title=\"{0}\"/>
 		<ac:link-body>{0}</ac:link-body>
-	</ac:link>
-    '''
+	</ac:link>'''
 
     user_template = '''
 <ac:link>
 <ri:user ri:userkey="{0}"/>
-</ac:link>
-    '''
+</ac:link>'''
 
     row_template = '<tr><td><p>{0}</p></td><td><p>{1}</p></td><td><p>{2}</p></td><td><p>{3}</p></td></tr>\n'
     rows = []
@@ -195,4 +189,4 @@ def update_stats_page(params):
     table = table_template.format(table)
     table = table.replace('\n', '').replace('\t', '').replace('&', '&amp;')
     print(table)
-    update_page(params['quality_page_id'], table, version + 1)
+    update_page(params['quality_page_id'], table, version + 1, params['quality_title'])

@@ -35,10 +35,21 @@ tech_practice = {
 
 db_practice = {
     'cql': 'space = "ACP" AND type = page AND label="tech-db" \
-            AND label NOT IN ("project-page", "tech-db-root-practice")',
+            AND label NOT IN ("project-page", "internal-project", "tech-db-root-practice")',
     'url': REST_URL + '/search?cql={0}&start=0&limit=50&expand=ancestors,body.storage',
     'file_name': 'ACP_db_practice_quality.csv',
     'quality_page_id': '1498415544',
+    'quality_title': 'Quality - DB & Storage Practice',
+    'sort': False
+}
+
+devops_practice = {
+    'cql': 'space = "ACP" AND type = page AND label="tech-devops" \
+            AND label NOT IN ("project-page", "internal-project", "tech-devops-root-practice")',
+    'url': REST_URL + '/search?cql={0}&start=0&limit=50&expand=ancestors,body.storage',
+    'file_name': 'ACP_devops_practice_quality.csv',
+    'quality_page_id': '1516404752',
+    'quality_title': 'Quality - DevOps Practice',
     'sort': False
 }
 
